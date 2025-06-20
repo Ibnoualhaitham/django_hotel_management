@@ -1,0 +1,100 @@
+{% extends 'navbar.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2 class="text-center mb-5 fw-bold text-primary">🛎️ Your Hotel Bookings</h2>
+
+  {% for booking in bookings %}
+  <div class="card mb-5 shadow border-0 rounded-4 overflow-hidden">
+    <div class="row g-0">
+      <!-- 📸 Room Image -->
+      <div class="col-md-5">
+        {% with booking.room.images.all|first as room_image %}
+          {% if room_image and room_image.image %}
+            <img src="{{ room_image.image.url }}" alt="Room Image"
+                 class="img-fluid h-100 w-100"
+                 style="object-fit: cover; min-height: 100%; border-top-left-radius: .75rem; border-bottom-left-radius: .75rem;">
+          {% else %}
+            <img src="{% static 'images/default_room.jpg' %}" alt="No Room Image"
+                 class="img-fluid h-100 w-100"
+                 style="object-fit: cover;">
+          {% endif %}
+        {% endwith %}
+      </div>
+
+      <!-- 📄 Booking Details -->
+      <div class="col-md-7 d-flex align-items-center">
+        <div class="card-body py-4 px-5">
+          <h4 class="fw-bold mb-3 text-primary">{{ booking.room.hotel.name }}</h4>
+          <p class="text-muted">{{ booking.room.hotel.description|truncatewords:25 }}</p>
+
+          <ul class="list-unstyled mb-4">
+            <li><strong>🏨 Room:</strong> {{ booking.room.room_type }} (#{{ booking.room.room_number }})</li>
+            <li><strong>👤 Booked By:</strong> {{ booking.user.username }}</li>
+            <li><strong>📅 Check-in:</strong> {{ booking.check_in_date|date:"d M Y" }}</li>
+            <li><strong>📅 Check-out:</strong> {{ booking.check_out_date|date:"d M Y" }}</li>
+            <li><strong>🧍 Guests:</strong> {{ booking.number_of_persons }}</li>
+            <li><strong>📌 Status:</strong>
+              {% if booking.is_active %}
+                <span class="badge bg-success">Active</span>
+              {% else %}
+                <span class="badge bg-danger">Cancelled</span>
+              {% endif %}
+            </li>
+            <li><strong>🕒 Booked:</strong> {{ booking.booked_on|naturaltime }}</li>
+          </ul>
+
+          <!-- 💳 Payment Info -->
+          {% with booking.payments.first as payment %}
+            {% if payment %}
+              <div class="bg-light p-3 rounded mb-3">
+                <h6 class="fw-semibold mb-2">💳 Payment</h6>
+                <p class="mb-1"><strong>Amount:</strong> ₹{{ payment.amount_paid|floatformat:2 }}</p>
+                <p class="mb-1">
+                  <strong>Status:</strong>
+                  {% if payment.payment_status == 'paid' %}
+                    <span class="badge bg-success">Paid</span>
+                  {% elif payment.payment_status == 'pending' %}
+                    <span class="badge bg-warning text-dark">Pending</span>
+                  {% else %}
+                    <span class="badge bg-secondary">{{ payment.payment_status|title }}</span>
+                  {% endif %}
+                </p>
+                <p class="mb-1"><strong>Method:</strong> {{ payment.get_payment_method_display }}</p>
+                <p class="mb-0"><strong>Txn ID:</strong> {{ payment.transaction_id }}</p>
+              </div>
+            {% else %}
+              <div class="alert alert-warning mt-2">No payment info found.</div>
+            {% endif %}
+          {% endwith %}
+
+          <!-- ✏️ Actions -->
+          <div class="d-flex gap-3 mt-3">
+            <a href="{% url 'booking_update' booking.pk %}" class="btn btn-outline-primary btn-sm">✏️ Edit</a>
+            <a href="{% url 'booking_delete' booking.pk %}" class="btn btn-outline-danger btn-sm"
+               onclick="return confirm('Are you sure you want to delete this booking?');">🗑️ Delete</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+    <div class="alert alert-info text-center py-5">No bookings found yet.</div>
+  {% endfor %}
+</div>
+
+<style>
+  .card {
+    transition: box-shadow 0.3s ease;
+  }
+  .card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+  .btn-sm {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+  }
+</style>
+{% endblock %}

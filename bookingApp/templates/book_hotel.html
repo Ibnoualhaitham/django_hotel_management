@@ -1,0 +1,32 @@
+{% extends 'navbar.html' %}
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow-lg rounded-4 border-0">
+        <div class="card-header bg-gradient bg-primary text-white rounded-top-4">
+          <h3 class="mb-0 text-center py-2">Book Your Stay at<strong>{{ hotel.name }}</strong></h3>
+        </div>
+        <div class="card-body p-4">
+          <form method="POST" novalidate>
+            {% csrf_token %}
+            {{ form.as_p }}
+
+            <div class="d-grid gap-2 mt-4">
+              <button type="submit" class="btn btn-success btn-lg">
+                <i class="bi bi-credit-card-fill me-2"></i>Proceed to Payment
+              </button>
+              <a href="{% url 'hotel_detail' hotel.pk %}" class="btn btn-outline-secondary btn-lg">
+                <i class="bi bi-arrow-left me-2"></i>Cancel & Return
+              </a>
+            </div>
+          </form>
+        </div>
+        <div class="card-footer text-muted text-center small">
+          Secure booking powered by {{ site_name|default:"Our Booking Platform" }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
