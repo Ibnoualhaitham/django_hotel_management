@@ -1,0 +1,14 @@
+<h1>Reviews for Your Hotels</h1>
+
+<ul>
+  {% for review in reviews %}
+    <li>
+      <strong>Hotel:</strong> {{ review.hotel.name }}<br>
+      <strong>Rating:</strong> {{ review.star_rating }}<br>
+      <strong>User:</strong> {{ review.user.username|default:"Anonymous" }}<br>
+      <strong>Comment:</strong> {{ review.comment }}
+    </li>
+  {% empty %}
+    <li>No reviews available.</li>
+  {% endfor %}
+</ul>

@@ -1,0 +1,44 @@
+{% extends 'navbar.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <form class="col-6 mx-auto card p-3" method="post" style="border-radius: 19px; background-color: #f8f9fa;">
+        {% csrf_token %}
+
+        <h1 style="text-align: center; text-shadow: 1px 10px 17px black; border-radius: 19px;">Login</h1>
+
+        <!-- Display Django form errors -->
+        {% if form.errors %}
+        <div style="background-color: #ffcccc; color: red; padding: 10px; border-radius: 10px; margin-bottom: 15px;">
+            {% for field in form %}
+                {% for error in field.errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Username -->
+        <div style="margin-bottom: 15px;">
+            <label for="{{ form.username.id_for_label }}">Username</label>
+            {{ form.username }}
+        </div>
+
+        <!-- Password -->
+        <div style="margin-bottom: 15px;">
+            <label for="{{ form.password.id_for_label }}">Password</label>
+            {{ form.password }}
+        </div>
+
+        <!-- Submit button -->
+        <button type="submit" style="display: block; margin: 0 auto; padding: 10px 20px; border-radius: 20px; background-color: green; color: white; border: none; cursor: pointer;">
+            Login
+        </button>
+
+        <p class="text-center mt-3">Don't have an account? <a href="{% url 'register' %}">Register</a></p>
+    </form>
+</div>
+{% endblock %}
