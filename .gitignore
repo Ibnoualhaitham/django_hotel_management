@@ -3,6 +3,18 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Django specific
+db.sqlite3
+/media/
+
+# IDE specific files (add if you use VS Code, PyCharm, etc.)
+.vscode/
+.idea/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
 # C extensions
 *.so
 

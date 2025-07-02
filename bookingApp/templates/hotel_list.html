@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Hotel List{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/hotel_list.css' %}">
+{% endblock %}
+
+{% block content %}
+
+
+<div class="container mt-5">
+  {% if user.is_authenticated %}
+    <h1 class="display-5 fw-bold text-center mb-4">Find Your Next Stay</h1>
+
+    {% if user.is_staff %}
+    <div class="mb-4 text-end">
+      <a href="{% url 'hotel_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Add New Hotel
+      </a>
+    </div>
+    {% endif %}
+
+    {% if hotels %}
+    <div class="row g-4">
+      {% for hotel in hotels %}
+      <div class="col-md-4">
+        <div class="card h-100">
+          {% with hotel.images.all|first as hotel_image %}
+            {% if hotel_image %}
+              <img src="{{ hotel_image.image.url }}" alt="{{ hotel.name }}" class="hotel-img"
+                   loading="lazy" onclick="showImageModal(this.src)">
+            {% else %}
+              <img src="{% static 'images/default_hotel.jpg' %}" alt="No image available"
+                   class="hotel-img" loading="lazy">
+            {% endif %}
+          {% endwith %}
+
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title">{{ hotel.name }}</h5>
+            <p class="text-muted small mb-1">
+              <i class="bi bi-geo-alt-fill"></i> {{ hotel.address }}
+            </p>
+            <p class="small">{{ hotel.description|truncatechars:100 }}</p>
+
+            <!-- Rating & Reviews -->
+            <div class="d-flex align-items-center mb-2">
+              <span class="badge bg-success me-2">
+                ★ {{ hotel.get_average_rating|default:"0"|floatformat:1 }}
+              </span>
+              <small class="text-muted">{{ hotel.review_set.count }} reviews</small>
+            </div>
+
+            <!-- Status Badges -->
+            {% if hotel.status == 'available' %}
+              <span class="badge bg-primary badge-status">Available</span>
+            {% elif hotel.status == 'booked' %}
+              <span class="badge bg-secondary badge-status">Booked</span>
+            {% elif hotel.status == 'under_maintenance' %}
+              <span class="badge bg-warning text-dark badge-status">Under Maintenance</span>
+            {% elif hotel.status == 'closed' %}
+              <span class="badge bg-danger badge-status">Closed</span>
+            {% endif %}
+
+            {% if hotel.is_getaway_deal %}
+              <div class="badge bg-warning text-dark mt-2 badge-status">Getaway Deal</div>
+            {% endif %}
+
+            <p class="mt-3 mb-1"><strong>{{ hotel.nights }} nights stay</strong></p>
+
+            <p class="mb-3 small text-muted">
+              <i class="bi bi-wifi"></i> Free Wi-Fi &nbsp; | &nbsp;
+              <i class="bi bi-cup-hot"></i> Breakfast &nbsp; | &nbsp;
+              <i class="bi bi-car-front"></i> Parking
+            </p>
+
+            
+            <div class="mt-auto d-flex gap-2 flex-wrap">
+              <a href="{% url 'hotel_detail' hotel.pk %}" class="btn btn-outline-primary btn-sm flex-fill">
+                View Details
+              </a>
+
+              {% if hotel.status == 'available' %}
+                {# Optional Book Now button - enable if needed #}
+                {# <a href="{% url 'book_hotel' hotel.pk %}" class="btn btn-success btn-sm flex-fill">Book Now</a> #}
+              {% else %}
+                <button class="btn btn-secondary btn-sm flex-fill" disabled>Unavailable</button>
+              {% endif %}
+
+              {% if user.is_staff %}
+                <a href="{% url 'hotel_update' hotel.pk %}" class="btn btn-warning btn-sm flex-fill">Edit</a>
+                <a href="{% url 'hotel_delete' hotel.pk %}" class="btn btn-outline-danger btn-sm flex-fill">Delete</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      <p class="text-center text-muted">No hotels found.</p>
+    {% endif %}
+  {% else %}
+    <div class="text-center mt-5">
+      <h2 class="text-muted">Please <a href="{% url 'login' %}">log in</a> to view available hotels.</h2>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

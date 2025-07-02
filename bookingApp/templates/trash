@@ -1,0 +1,1262 @@
+{% extends 'navbar.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+  <h1 class="display-5 fw-bold text-center mb-4">Find your next stay</h1>
+
+  <!-- Add New Hotel Button -->
+  <div class="mb-4 text-end">
+    <a href="{% url 'hotel_create' %}" class="btn btn-primary">+ Add New Hotel</a>
+  </div>
+
+  {% if hotels %}
+  <div id="hotelCarousel" class="carousel slide carousel-dark" data-bs-ride="carousel">
+    <div class="carousel-inner">
+
+      {% for hotel in hotels %}
+        {% if forloop.counter0|divisibleby:3 %}
+        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+          <div class="row justify-content-center">
+        {% endif %}
+
+        <div class="col-md-4 mb-4">
+          <div class="card h-100 shadow-sm border-0 rounded-4 clickable-card" style="cursor:pointer;">
+
+            <!-- Hotel Image -->
+            {% with hotel.images.all|first as hotel_image %}
+              {% if hotel_image %}
+                <img src="{{ hotel_image.image.url }}" class="card-img-top rounded-top-4"
+                     style="height: 230px; object-fit: cover;" alt="{{ hotel.name }}" loading="lazy" />
+              {% else %}
+                <img src="{% static 'default_hotel.jpg' %}" class="card-img-top rounded-top-4"
+                     style="height: 230px; object-fit: cover;" alt="No image available" loading="lazy" />
+              {% endif %}
+            {% endwith %}
+
+            <div class="card-body">
+              <h5 class="card-title">{{ hotel.name }}</h5>
+              <p class="card-text text-muted small mb-1">
+                <i class="bi bi-geo-alt-fill"></i> {{ hotel.address }}
+              </p>
+              <p class="card-text small">{{ hotel.description|truncatechars:100 }}</p>
+
+              <!-- Rating & Reviews -->
+              <div class="d-flex align-items-center mb-2">
+                <span class="badge bg-success me-2">
+                  ★ {{ hotel.get_average_rating|default:"0"|floatformat:1 }}
+                </span>
+                <small class="text-muted">{{ hotel.review_set.count }} reviews</small>
+              </div>
+
+              <!-- Status badge -->
+              {% if hotel.status == 'available' %}
+                <span class="badge bg-primary">Available</span>
+              {% elif hotel.status == 'booked' %}
+                <span class="badge bg-secondary">Booked</span>
+              {% elif hotel.status == 'under_maintenance' %}
+                <span class="badge bg-warning text-dark">Under Maintenance</span>
+              {% elif hotel.status == 'closed' %}
+                <span class="badge bg-danger">Closed</span>
+              {% endif %}
+
+              {% if hotel.is_getaway_deal %}
+                <div class="badge bg-warning text-dark mt-2">Getaway Deal</div>
+              {% endif %}
+
+              <!-- Amenities -->
+              <p class="mt-2 mb-1"><strong>{{ hotel.nights }} nights stay</strong></p>
+              <p class="mb-2 small text-muted">
+                <i class="bi bi-wifi"></i> Free Wi-Fi &nbsp; | &nbsp;
+                <i class="bi bi-cup-hot"></i> Breakfast &nbsp; | &nbsp;
+                <i class="bi bi-car-front"></i> Parking
+              </p>
+
+              <!-- Action buttons -->
+              <div class="mt-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <a href="{% url 'hotel_detail' hotel.pk %}" class="btn btn-outline-primary btn-sm">View Details</a>
+
+                {% if hotel.status == 'available' %}
+                  <a href="{% url 'book_hotel' hotel.pk %}" class="btn btn-success btn-sm">Book Now</a>
+                {% else %}
+                  <button class="btn btn-secondary btn-sm" disabled>Unavailable</button>
+                {% endif %}
+
+                <a href="{% url 'hotel_update' hotel.pk %}" class="btn btn-warning btn-sm">Edit</a>
+                <a href="{% url 'hotel_delete' hotel.pk %}" class="btn btn-outline-danger btn-sm">Delete</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {% if forloop.counter|divisibleby:3 or forloop.last %}
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- Carousel Controls -->
+    {% if hotels|length > 12 %}
+    <button class="carousel-control-prev" type="button" data-bs-target="#hotelCarousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#hotelCarousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Next</span>
+    </button>
+    {% endif %}
+  </div>
+  {% else %}
+    <p class="text-center text-muted">No hotels found.</p>
+  {% endif %}
+</div>
+
+<!-- JavaScript to fix clickable card behavior -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const carouselElement = document.querySelector('#hotelCarousel');
+    const bootstrapCarousel = bootstrap.Carousel.getInstance(carouselElement) || new bootstrap.Carousel(carouselElement);
+
+    document.querySelectorAll('#hotelCarousel .clickable-card').forEach(card => {
+      card.addEventListener('click', function(e) {
+        if (e.target.closest('a') || e.target.closest('button')) return;
+        bootstrapCarousel.next();
+      });
+    });
+  });
+</script>
+{% endblock %}
+
+
+////////////////////////////hotel_detail.html code /////////////////////
+
+{% extends 'navbar.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+
+  <!-- 🔷 HOTEL MAIN CARD -->
+  <div class="card shadow-lg border-0 rounded-4 mb-5">
+    <div class="row g-0">
+      <div class="col-md-6">
+        {% with hotel.images.all|first as hotel_image %}
+          {% if hotel_image %}
+            <img src="{{ hotel_image.image.url }}"
+                 class="img-fluid h-100 w-100 rounded-start-4"
+                 style="object-fit: cover;" alt="{{ hotel.name }}">
+          {% else %}
+            <img src="{% static 'images/default_hotel.jpg' %}"
+                 class="img-fluid h-100 w-100 rounded-start-4"
+                 style="object-fit: cover;" alt="Default Hotel">
+          {% endif %}
+        {% endwith %}
+      </div>
+      <div class="col-md-6 p-4 d-flex flex-column justify-content-between">
+        <div>
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <h2 class="fw-bold">{{ hotel.name }}</h2>
+            <a href="{% url 'room_create' hotel.pk %}" class="btn btn-primary btn-sm">
+              <i class="bi bi-plus-circle"></i> Add Room
+            </a>
+          </div>
+          <p class="mb-1"><strong>Address:</strong> {{ hotel.address }}</p>
+          <p>{{ hotel.description }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔶 ROOMS SECTION -->
+  <h4 class="mb-3">Available Rooms</h4>
+  {% if hotel.room.all %}
+    <div class="row g-4 mb-5">
+      {% for room in hotel.room.all %}
+        <div class="col-md-4">
+          <div class="card h-100 shadow-sm border-0 rounded-4">
+            {% with room.images.all|first as room_image %}
+              {% if room_image %}
+                <img src="{{ room_image.image.url }}" class="card-img-top rounded-top-4"
+                     style="height: 200px; object-fit: cover;" alt="{{ room.name }}">
+              {% else %}
+                <img src="{% static 'images/default_room.jpg' %}" class="card-img-top rounded-top-4"
+                     style="height: 200px; object-fit: cover;" alt="Room">
+              {% endif %}
+            {% endwith %}
+
+            <div class="card-body">
+              <h5 class="card-title">{{ room.name }}</h5>
+              <ul class="list-unstyled small">
+                <li class="mb-1">
+                  <i class="bi bi-door-closed-fill text-primary"></i>
+                  <strong>Room #:</strong> {{ room.room_number }}
+                </li>
+                <li class="mb-1">
+                  <i class="bi bi-building text-secondary"></i>
+                  <strong>Type:</strong> {{ room.room_type|title }}
+                </li>
+                <li class="mb-1">
+                  <i class="bi bi-currency-dollar text-success"></i>
+                  <strong>Price:</strong>
+                  <span class="badge bg-success">${{ room.price }}</span>
+                </li>
+                <li class="mb-1">
+                  <i class="bi bi-check-circle-fill text-success"></i>
+                  <strong>Available:</strong>
+                  {% if room.is_available %}
+                    <span class="badge bg-primary">Yes</span>
+                  {% else %}
+                    <span class="badge bg-danger">No</span>
+                  {% endif %}
+                </li>
+              </ul>
+            </div>
+
+            <div class="card-footer d-flex justify-content-between align-items-center bg-white border-top-0">
+              <a href="{% url 'book_hotel' hotel.pk %}" class="btn btn-success btn-sm">
+                <i class="bi bi-calendar-check"></i> Book Now
+              </a>
+              <a style="margin-left:16vh;" href="{% url 'room_update' room.pk %}" class="btn btn-warning btn-sm">
+                <i class="bi bi-pencil-square"></i> Edit
+              </a>
+              <a href="{% url 'room_delete' room.pk %}" class="btn btn-danger btn-sm">
+                <i class="bi bi-trash"></i> Delete
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted">No rooms available yet.</p>
+  {% endif %}
+
+  <!-- 🔶 REVIEWS SECTION -->
+  <h4 class="mb-3">Guest Reviews</h4>
+  {% if reviews %}
+    <div class="row g-3">
+      {% for review in reviews %}
+        <div class="col-md-4">
+          <div class="card shadow-sm border-0 rounded-4 h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between mb-2">
+                <strong>{{ review.user.username }}</strong>
+                <span class="text-warning fw-bold">★ {{ review.star_rating }}</span>
+              </div>
+              <p class="card-tex # Optional: clear existing images if replacing them
+        # self.object.images.clear()t small">{{ review.comment }}</p>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted">No reviews yet.</p>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+
+
+//////////////////// views.py code //////////////////////
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.views.generic import CreateView, TemplateView, ListView, DetailView, UpdateView, DeleteView
+from django.urls import reverse_lazy
+from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import login as auth_login
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.messages.views import SuccessMessageMixin
+
+from .models import Booking, Payment
+from hotelApp.models import Hotel, Review, Room, Image
+from .forms import RegisterForm, BookingForm, PaymentForm
+
+
+# --- User Management ---
+class RegistrationView(CreateView):
+    form_class = RegisterForm
+    template_name = 'register.html'
+    success_url = reverse_lazy('login')
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect('user_profile')
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        user = form.save()
+        auth_login(self.request, user)
+        messages.success(self.request, 'Registration successful!')
+        return redirect(self.success_url)
+
+
+class UserLoginView(SuccessMessageMixin, LoginView):
+    template_name = 'login.html'
+    form_class = AuthenticationForm
+    success_message = 'Login successful!'
+
+    def get_success_url(self):
+        return reverse_lazy('user_profile')
+
+
+class UserLogoutView(LoginRequiredMixin, LogoutView):
+    next_page = reverse_lazy('login')
+
+    def dispatch(self, request, *args, **kwargs):
+        messages.success(request, 'Logout successful!')
+        return super().dispatch(request, *args, **kwargs)
+
+
+class UserProfileView(LoginRequiredMixin, TemplateView):
+    template_name = 'user_profile.html'
+
+
+# --- Hotel Views ---
+class HotelListView(LoginRequiredMixin, ListView):
+    model = Hotel
+    template_name = 'hotel_list.html'
+    context_object_name = 'hotels'
+
+
+class HotelDetailView(LoginRequiredMixin, DetailView):
+    model = Hotel
+    template_name = 'hotel_detail.html'
+    context_object_name = 'hotel'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['reviews'] = Review.objects.filter(hotel=self.object)
+        return context
+
+
+class HotelCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+    model = Hotel
+    fields = ['name', 'description', 'images', 'address', 'mobile', 'email', 'status', 'facilities', 'manager']
+    template_name = 'hotel_form.html'
+    success_url = reverse_lazy('hotel_list')
+    success_message = 'Hotel Created Successfully'
+
+
+class HotelUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+    model = Hotel
+    fields = ['name', 'description', 'address', 'mobile', 'email', 'status', 'facilities', 'manager']
+    template_name = 'hotel_form.html'
+    success_url = reverse_lazy('hotel_list')
+    success_message = "Hotel updated successfully."
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+
+        # Delete selected images
+        image_ids_to_delete = self.request.POST.getlist('delete_images')
+        if image_ids_to_delete:
+            images_to_delete = self.object.images.filter(id__in=image_ids_to_delete)
+            for img in images_to_delete:
+                img.image.delete()  # Delete file
+                img.delete()        # Delete object
+            self.object.images.remove(*images_to_delete)
+
+        # Add new uploaded images
+        for image_file in self.request.FILES.getlist('images'):
+            img = Image.objects.create(image=image_file)
+            self.object.images.add(img)
+
+        return response
+
+
+class HotelDeleteView(LoginRequiredMixin, SuccessMessageMixin, DeleteView):
+    model = Hotel
+    template_name = 'hotel_confirm_delete.html'
+    success_url = reverse_lazy('hotel_list')
+    success_message = "Hotel deleted successfully."
+
+
+# --- Room Views ---
+class RoomCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+    model = Room
+    fields = ['room_number', 'room_type', 'is_available', 'price']
+    template_name = 'room_form.html'
+    success_message = 'Room created successfully.'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.hotel = get_object_or_404(Hotel, pk=self.kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.hotel = self.hotel
+        response = super().form_valid(form)
+        for image_file in self.request.FILES.getlist('images'):
+            img = Image.objects.create(image=image_file)
+            self.object.images.add(img)
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['hotel_object'] = self.hotel
+        return context
+
+    def get_success_url(self):
+        return reverse_lazy('hotel_detail', kwargs={'pk': self.hotel.pk})
+
+
+class RoomUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+    model = Room
+    fields = ['room_number', 'room_type', 'is_available', 'price']
+    template_name = 'room_form.html'
+    success_message = "Room updated successfully."
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        self.object.images.clear()
+        for image_file in self.request.FILES.getlist('images'):
+            img = Image.objects.create(image=image_file)
+            self.object.images.add(img)
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['hotel_object'] = self.object.hotel
+        return context
+
+    def get_success_url(self):
+        return reverse_lazy('hotel_detail', kwargs={'pk': self.object.hotel.pk})
+
+
+class RoomDeleteView(LoginRequiredMixin, SuccessMessageMixin, DeleteView):
+    model = Room
+    template_name = 'room_confirm_delete.html'
+    success_message = "Room deleted successfully."
+
+    def get_success_url(self):
+        hotel = self.get_object().hotel
+        return reverse_lazy('hotel_detail', kwargs={'pk': hotel.pk})
+
+
+# --- Booking and Payment ---
+class RoomBookingView(LoginRequiredMixin, CreateView):
+    model = Booking
+    form_class = BookingForm
+    template_name = 'booking_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.room = get_object_or_404(Room, pk=kwargs['room_id'])
+        if not self.room.is_available:
+            messages.error(request, "This room is not available for booking.")
+            return redirect('hotel_detail', pk=self.room.hotel.pk)
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        form.instance.room = self.room
+        form.instance.hotel = self.room.hotel
+        form.instance.is_active = True
+        messages.success(self.request, "Booking created! Please proceed to payment.")
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['room'] = self.room
+        context['hotel'] = self.room.hotel
+        return context
+
+    def get_success_url(self):
+        return reverse_lazy('make_payment', kwargs={'booking_id': self.object.pk})
+
+
+class BookingListView(LoginRequiredMixin, ListView):
+    model = Booking
+    template_name = 'booking_list.html'
+    context_object_name = 'bookings'
+
+    def get_queryset(self):
+        return Booking.objects.filter(user=self.request.user)
+
+
+class BookingUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+    model = Booking
+    form_class = BookingForm
+    template_name = 'booking_form.html'
+    success_message = "Booking updated successfully."
+
+    def get_queryset(self):
+        return Booking.objects.filter(user=self.request.user)
+
+    def get_success_url(self):
+        return reverse_lazy('booking_list')
+
+
+class BookingDeleteView(LoginRequiredMixin, SuccessMessageMixin, DeleteView):
+    model = Booking
+    template_name = 'booking_confirm_delete.html'
+    success_message = "Booking deleted successfully."
+
+    def get_queryset(self):
+        return Booking.objects.filter(user=self.request.user)
+
+    def get_success_url(self):
+        return reverse_lazy('booking_list')
+
+
+class PaymentCreateView(LoginRequiredMixin, CreateView):
+    model = Payment
+    form_class = PaymentForm
+    template_name = 'payment_form.html'
+    success_url = reverse_lazy('booking_success')
+
+    def dispatch(self, request, *args, **kwargs):
+        self.booking = get_object_or_404(Booking, pk=kwargs['booking_id'], user=request.user)
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        form.instance.booking = self.booking
+        messages.success(self.request, 'Payment completed successfully!')
+        return super().form_valid(form)
+
+
+
+        # ---------------------------- New views.py code ----------------------------
+
+from django.shortcuts import get_object_or_404, redirect
+from django.views.generic import (
+    CreateView, TemplateView, ListView, DetailView, UpdateView, DeleteView
+)
+from django.urls import reverse_lazy, reverse
+from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import login as auth_login
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.messages.views import SuccessMessageMixin
+
+from .models import Booking, Payment
+from hotelApp.models import Hotel, Review, Room, Image
+from .forms import RegisterForm, BookingForm, PaymentForm
+from core.models import BaseMixin  # assuming BaseMixin exists in core.mixins
+
+
+class RegistrationView(BaseMixin, CreateView):
+    form_class = RegisterForm
+    template_name = 'register.html'
+    success_url = reverse_lazy('login')
+
+    def form_valid(self, form):
+        if self.request.user.is_authenticated:
+            return redirect('user_profile')
+        user = form.save()
+        auth_login(self.request, user)
+        messages.success(self.request, 'Registration successful!')
+        return redirect(self.success_url)
+
+
+class UserLoginView(BaseMixin, SuccessMessageMixin, LoginView):
+    template_name = 'login.html'
+    form_class = AuthenticationForm
+    success_message = 'Login successful!'
+
+    def get_success_url(self):
+        return reverse_lazy('user_profile')
+
+
+class UserLogoutView(BaseMixin, LogoutView):
+    next_page = reverse_lazy('login')
+
+    def get(self, request, *args, **kwargs):
+        messages.success(request, 'Logout successful!')
+        return super().get(request, *args, **kwargs)
+
+
+class UserProfileView(BaseMixin, TemplateView):
+    template_name = 'user_profile.html'
+
+
+class HotelListView(BaseMixin, ListView):
+    model = Hotel
+    template_name = 'hotel_list.html'
+    context_object_name = 'hotels'
+
+
+class HotelDetailView(BaseMixin, DetailView):
+    model = Hotel
+    template_name = 'hotel_detail.html'
+    context_object_name = 'hotel'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['reviews'] = Review.objects.filter(hotel=self.object)
+        return context
+
+
+class HotelCreateView(BaseMixin, SuccessMessageMixin, CreateView):
+    model = Hotel
+    form_class = HotelForm
+    template_name = 'hotel_form.html'
+    success_url = reverse_lazy('hotel_list')
+    success_message = 'Hotel Created Successfully'
+
+
+class HotelUpdateView(BaseMixin, SuccessMessageMixin, UpdateView):
+    model = Hotel
+    form_class = HotelForm
+    template_name = 'hotel_form.html'
+    success_url = reverse_lazy('hotel_list')
+    success_message = "Hotel updated successfully."
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        for image_file in self.request.FILES.getlist('images'):
+            img = Image.objects.create(image=image_file)
+            self.object.images.add(img)
+        return response
+
+
+class HotelDeleteView(BaseMixin, SuccessMessageMixin, DeleteView):
+    model = Hotel
+    template_name = 'hotel_confirm_delete.html'
+    success_url = reverse_lazy('hotel_list')
+    success_message = "Hotel deleted successfully."
+
+
+class HotelBookView(BaseMixin, CreateView):
+    model = Booking
+    form_class = BookingForm
+    template_name = 'book_hotel.html'
+
+    def get(self, request, *args, **kwargs):
+        self.room = get_object_or_404(Room, pk=kwargs['pk'])
+        if not self.room.is_available:
+            messages.error(request, "This room is not available for booking.")
+            return redirect('hotel_detail', pk=self.room.hotel.pk)
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        self.room = get_object_or_404(Room, pk=kwargs['pk'])
+        return super().post(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.user = self.user
+        form.instance.room = self.room
+        form.instance.is_active = True
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['room'] = self.room
+        context['hotel'] = self.room.hotel
+        return context
+
+    def get_success_url(self):
+        return reverse_lazy('make_payment', kwargs={'booking_id': self.object.pk})
+
+
+class BookingListView(BaseMixin, ListView):
+    model = Booking
+    template_name = 'booking_list.html'
+    context_object_name = 'bookings'
+
+    def get_queryset(self):
+        return Booking.objects.filter(user=self.user)
+
+
+class BookingUpdateView(BaseMixin, SuccessMessageMixin, UpdateView):
+    model = Booking
+    form_class = BookingForm
+    template_name = 'booking_form.html'
+    success_message = "Booking updated successfully."
+
+    def get_queryset(self):
+        return Booking.objects.filter(user=self.user)
+
+    def get_success_url(self):
+        return reverse_lazy('booking_list')
+
+
+class BookingDeleteView(BaseMixin, SuccessMessageMixin, DeleteView):
+    model = Booking
+    template_name = 'room_confirm_delete.html'
+    success_message = "Booking deleted successfully."
+
+    def get_queryset(self):
+        return Booking.objects.filter(user=self.user)
+
+    def get_success_url(self):
+        return reverse_lazy('booking_list')
+
+
+class PaymentCreateView(BaseMixin, CreateView):
+    model = Payment
+    form_class = PaymentForm
+    template_name = 'payment_form.html'
+
+    def get(self, request, *args, **kwargs):
+        self.booking = get_object_or_404(Booking, pk=kwargs['booking_id'], user=self.user)
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        self.booking = get_object_or_404(Booking, pk=kwargs['booking_id'], user=self.user)
+        return super().post(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.user = self.user
+        form.instance.booking = self.booking
+        messages.success(self.request, 'Payment completed successfully!')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('booking_success')
+
+
+class RoomCreateView(BaseMixin, SuccessMessageMixin, CreateView):
+    model = Room
+    form_class = RoomForm
+    template_name = 'room_form.html'
+    success_message = 'Room created successfully.'
+
+    def get(self, request, *args, **kwargs):
+        self.hotel = get_object_or_404(Hotel, pk=kwargs['pk'])
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        self.hotel = get_object_or_404(Hotel, pk=kwargs['pk'])
+        return super().post(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.hotel = self.hotel
+        response = super().form_valid(form)
+        for image_file in self.request.FILES.getlist('images'):
+            img = Image.objects.create(image=image_file)
+            self.object.images.add(img)
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['hotel_object'] = self.hotel
+        return context
+
+    def get_success_url(self):
+        return reverse_lazy('hotel_detail', kwargs={'pk': self.hotel.pk})
+
+
+class RoomUpdateView(BaseMixin, SuccessMessageMixin, UpdateView):
+    model = Room
+    form_class = RoomForm
+    template_name = 'room_form.html'
+    success_message = "Room updated successfully."
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        self.object.images.clear()
+        for image_file in self.request.FILES.getlist('images'):
+            img = Image.objects.create(image=image_file)
+            self.object.images.add(img)
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['hotel_object'] = self.object.hotel
+        return context
+
+    def get_success_url(self):
+        return reverse_lazy('hotel_detail', kwargs={'pk': self.object.hotel.pk})
+
+
+class RoomDeleteView(BaseMixin, SuccessMessageMixin, DeleteView):
+    model = Room
+    template_name = 'room_confirm_delete.html'
+    success_message = "Room deleted successfully."
+
+    def get_success_url(self):
+        hotel = self.get_object().hotel
+        return reverse_lazy('hotel_detail', kwargs={'pk': hotel.pk})
+
+
+
+# -------------------------------------- Older views.py code ----------------------------
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.views.generic import (
+    CreateView, TemplateView, ListView, DetailView, UpdateView, DeleteView
+)
+from django.urls import reverse_lazy, reverse
+from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import login as auth_login
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.messages.views import SuccessMessageMixin
+
+from .models import Booking, Payment
+from hotelApp.models import Hotel, Review, Room, Image  # include Image model
+from .forms import RegisterForm, BookingForm, PaymentForm
+
+
+# --- User Management ---
+class RegistrationView(CreateView):
+    form_class = RegisterForm
+    template_name = 'register.html'
+    success_url = reverse_lazy('login')
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect('user_profile')
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        user = form.save()
+        auth_login(self.request, user)
+        messages.success(self.request, 'Registration successful!')
+        return redirect(self.success_url)
+
+
+class UserLoginView(SuccessMessageMixin, LoginView):
+    template_name = 'login.html'
+    form_class = AuthenticationForm
+    success_message = 'Login successful!'
+
+    def get_success_url(self):
+        return reverse_lazy('user_profile')
+
+
+class UserLogoutView(LoginRequiredMixin, LogoutView):
+    next_page = reverse_lazy('login')
+
+    def dispatch(self, request, *args, **kwargs):
+        messages.success(request, 'Logout successful!')
+        return super().dispatch(request, *args, **kwargs)
+
+
+class UserProfileView(LoginRequiredMixin, TemplateView):
+    template_name = 'user_profile.html'
+
+
+# --- Hotel Views ---
+class HotelListView(LoginRequiredMixin, ListView):
+    model = Hotel
+    template_name = 'hotel_list.html'
+    context_object_name = 'hotels'
+
+
+class HotelDetailView(LoginRequiredMixin, DetailView):
+    model = Hotel
+    template_name = 'hotel_detail.html'
+    context_object_name = 'hotel'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['reviews'] = Review.objects.filter(hotel=self.object)
+        return context
+
+
+class HotelCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+    model = Hotel
+    fields = ['name', 'description', 'images', 'address', 'mobile', 'email', 'status', 'facilities', 'manager']
+    template_name = 'hotel_form.html'
+    success_url = reverse_lazy('hotel_list')
+    success_message = 'Hotel Created Successfully'
+
+
+class HotelUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+    model = Hotel
+    fields = ['name', 'description', 'address', 'mobile', 'email', 'status', 'facilities', 'manager']
+    template_name = 'hotel_form.html'
+    success_url = reverse_lazy('hotel_list')
+    success_message = "Hotel updated successfully."
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+
+        # Optional: clear existing images if replacing them
+        # self.object.images.clear()
+
+        for image_file in self.request.FILES.getlist('images'):
+            img = Image.objects.create(image=image_file)
+            self.object.images.add(img)
+
+        return response
+    
+class HotelDeleteView(LoginRequiredMixin, SuccessMessageMixin, DeleteView):
+    model = Hotel
+    template_name = 'hotel_confirm_delete.html'
+    success_url = reverse_lazy('hotel_list')
+    success_message = "Hotel deleted successfully."
+
+
+# --- Booking and Payment ---
+class HotelBookView(LoginRequiredMixin, CreateView):
+    model = Booking
+    form_class = BookingForm
+    template_name = 'book_hotel.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.hotel = get_object_or_404(Hotel, pk=kwargs['pk'])
+        if self.hotel.status in ['booked', 'closed']:
+            messages.error(request, "This hotel is not available for booking.")
+            return redirect('hotel_detail', pk=self.hotel.pk)
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        form.instance.hotel = self.hotel
+        form.instance.status = 'pending'
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['hotel'] = self.hotel
+        return context
+
+    def get_success_url(self):
+        return reverse_lazy('make_payment', kwargs={'booking_id': self.object.pk})
+
+
+# --- Book a Room (HotelBookView expects to book a specific room) ---
+class HotelBookView(LoginRequiredMixin, CreateView):
+    model = Booking
+    form_class = BookingForm
+    template_name = 'book_hotel.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.room = get_object_or_404(Room, pk=kwargs['pk'])
+        if not self.room.is_available:
+            messages.error(request, "This room is not available for booking.")
+            return redirect('hotel_detail', pk=self.room.hotel.pk)
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        form.instance.room = self.room
+        form.instance.is_active = True  # Default to active when created
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['room'] = self.room
+        context['hotel'] = self.room.hotel
+        return context
+
+    def get_success_url(self):
+        return reverse_lazy('make_payment', kwargs={'booking_id': self.object.pk})
+
+
+# --- Create Booking (General) ---
+class BookingView(LoginRequiredMixin, CreateView):
+    form_class = BookingForm
+    template_name = 'booking_form.html'
+    success_url = reverse_lazy('user_profile')
+
+    def dispatch(self, request, *args, **kwargs):
+        self.hotel = get_object_or_404(Hotel, pk=self.kwargs['hotel_id'])
+        self.room = get_object_or_404(Room, pk=self.kwargs['room_id'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        form.instance.hotel = self.hotel
+        form.instance.room = self.room
+        messages.success(self.request, 'Booking created successfully!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['hotel'] = self.hotel
+        context['room'] = self.room
+        return context
+
+
+
+# --- List Bookings ---
+class BookingListView(LoginRequiredMixin, ListView):
+    model = Booking
+    template_name = 'booking_list.html'
+    context_object_name = 'bookings'
+
+    def get_queryset(self):
+        return Booking.objects.filter(user=self.request.user)
+
+
+class BookingUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+    model = Booking
+    form_class = BookingForm
+    template_name = 'booking_form.html'
+    success_message = "Booking updated successfully."
+
+    def get_queryset(self):
+        return Booking.objects.filter(user=self.request.user)
+
+    def get_success_url(self):
+        return reverse_lazy('booking_list')
+
+
+# --- Delete Booking ---
+class BookingDeleteView(LoginRequiredMixin, SuccessMessageMixin, DeleteView):
+    model = Booking
+    template_name = 'room_confirm_delete.html'
+    success_message = "Booking deleted successfully."
+
+    def get_queryset(self):
+        # Only allow users to delete their own bookings
+        return Booking.objects.filter(user=self.request.user)
+
+    def get_success_url(self):
+        return reverse_lazy('booking_list')
+
+
+
+class PaymentCreateView(LoginRequiredMixin, CreateView):
+    model = Payment
+    form_class = PaymentForm
+    template_name = 'payment_form.html'
+    success_url = reverse_lazy('booking_success')
+
+    def dispatch(self, request, *args, **kwargs):
+        self.booking = get_object_or_404(Booking, pk=kwargs['booking_id'], user=request.user)
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        form.instance.booking = self.booking
+        messages.success(self.request, 'Payment completed successfully!')
+        return super().form_valid(form)
+
+
+# --- Room Views ---
+class RoomCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+    model = Room
+    fields = ['room_number', 'room_type', 'is_available', 'price']
+    template_name = 'room_form.html'
+    success_message = 'Room created successfully.'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.hotel = get_object_or_404(Hotel, pk=self.kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.hotel = self.hotel
+        response = super().form_valid(form)
+
+        # Save uploaded images
+        for image_file in self.request.FILES.getlist('images'):
+            img = Image.objects.create(image=image_file)
+            self.object.images.add(img)
+
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['hotel_object'] = self.hotel
+        return context
+
+    def get_success_url(self):
+        return reverse_lazy('hotel_detail', kwargs={'pk': self.hotel.pk})
+
+
+class RoomUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+    model = Room
+    fields = ['room_number', 'room_type', 'is_available', 'price']  # do not include images here
+    template_name = 'room_form.html'
+    success_message = "Room updated successfully."
+
+    def form_valid(self, form):
+        # Save the basic room data
+        response = super().form_valid(form)
+
+        # Optional: Clear old images if you want to replace them
+        self.object.images.clear()
+
+        # Add new uploaded images
+        for image_file in self.request.FILES.getlist('images'):
+            img = Image.objects.create(image=image_file)
+            self.object.images.add(img)
+
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['hotel_object'] = self.object.hotel
+        return context
+
+    def get_success_url(self):
+        return reverse_lazy('hotel_detail', kwargs={'pk': self.object.hotel.pk})
+
+class RoomDeleteView(LoginRequiredMixin, SuccessMessageMixin, DeleteView):
+    model = Room
+    template_name = 'room_confirm_delete.html'
+    success_message = "Room deleted successfully."
+
+    def get_success_url(self):
+        hotel = self.get_object().hotel
+        return reverse_lazy('hotel_detail', kwargs={'pk': hotel.pk})
+
+
+
+//////////////////////////// room_confirm_delete /////////////
+
+{% extends "navbar.html" %}
+
+{% block content %}
+  <h2>Are you sure you want to delete this room?</h2>
+ 
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Yes, delete</button>
+   <a href="{% url 'hotel_list'%}" class="btn btn-secondary">Cancel</a>
+  </form>
+{% endblock %}
+
+
+////////////////////////// hotel_confirm_delete ////////////////
+
+{% extends 'navbar.html' %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2>Delete Hotel</h2>
+  <p>Are you sure you want to delete <strong>{{ object.name }}</strong>?</p>
+
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+    <a href="{% url 'hotel_list' %}" class="btn btn-warning ms-2">Cancel</a>
+  </form>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+settings.py code 
+
+
+"""
+Django settings for best_luxury_hotel project.
+
+Generated by 'django-admin startproject' using Django 5.2.3.
+"""
+
+import os
+from pathlib import Path
+
+# --- Base Directory ---
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# --- Security Settings ---
+SECRET_KEY = 'django-insecure-n%s31og5^pp5(yu5shtw$3c7r&fcl2y^x+y15-7@$#@&v4mdr#'
+DEBUG = True
+ALLOWED_HOSTS = []
+
+# --- Custom User Model ---
+AUTH_USER_MODEL = 'userApp.User'
+
+# --- Login Settings ---
+LOGIN_URL = '/login/'
+
+# --- Session Settings ---
+SESSION_ENGINE = 'django.contrib.sessions.backends.file'
+SESSION_FILE_PATH = os.path.join(BASE_DIR, 'sessions')  # Ensure this folder exists!
+SESSION_COOKIE_AGE = 1800  # 30 minutes
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# Make sure the session folder exists
+if not os.path.exists(SESSION_FILE_PATH):
+    os.makedirs(SESSION_FILE_PATH)
+
+# --- Installed Applications ---
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'django.contrib.humanize',
+
+    # Custom apps
+    'core',         # BaseMixin etc. Application
+    'userApp',      # User and Manager.
+    'hotelApp',     # Hotels, Rooms, Facilities, etc.
+    'bookingApp',   # Booking and Payment
+]
+
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+
+ROOT_URLCONF = 'best_luxury_hotel.urls'
+
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates'],  # Custom template folder
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+
+WSGI_APPLICATION = 'best_luxury_hotel.wsgi.application'
+
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
+
+# --- Localization ---
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
+
+# --- Static & Media Files ---
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# --- Default Primary Key ---
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+
+  <!-- 🔷 HOTEL MAIN CARD -->
+  <div class="card shadow-lg border-0 rounded-4 mb-5">
+    <div class="row g-0">
+      <div class="col-md-6">
+        {% with hotel.images.all|first as hotel_image %}
+          {% if hotel_image %}
+            <img src="{{ hotel_image.image.url }}" class="img-fluid h-100 w-100 rounded-start-4" style="object-fit: cover;" alt="{{ hotel.name }}">
+          {% else %}
+            <img src="{% static 'images/default_hotel.jpg' %}" class="img-fluid h-100 w-100 rounded-start-4" style="object-fit: cover;" alt="Default Hotel">
+          {% endif %}
+        {% endwith %}
+      </div>
+      <div class="col-md-6 p-4 d-flex flex-column justify-content-between">
+        <div>
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <h2 class="fw-bold">{{ hotel.name }}</h2>
+
+            <!-- 👇 Only show Add Room button to staff -->
+            {% if request.user.is_authenticated and request.user.is_staff %}
+              <a href="{% url 'room_create' hotel.pk %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i> Add Room
+              </a>
+            {% endif %}
+          </div>
+          <p class="mb-1"><strong>Address:</strong> {{ hotel.address }}</p>
+          <p>{{ hotel.description }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔶 ROOMS SECTION -->
+  <h4 class="mb-3">Available Rooms</h4>
+  {% if hotel.rooms.all %}
+    <div class="row g-4 mb-5">
+      {% for room in hotel.rooms.all %}
+        <div class="col-md-4">
+          <div class="card h-100 shadow-sm border-0 rounded-4">
+            {% with room.images.all|first as room_image %}
+              {% if room_image %}
+                <img src="{{ room_image.image.url }}" class="card-img-top rounded-top-4"
+                     style="height: 200px; object-fit: cover;" alt="{{ room.name }}">
+              {% else %}
+                <img src="{% static 'images/default_room.jpg' %}" class="card-img-top rounded-top-4"
+                     style="height: 200px; object-fit: cover;" alt="Room">
+              {% endif %}
+            {% endwith %}
+
+            <div class="card-body">
+              <h5 class="card-title">{{ room.name }}</h5>
+              <ul class="list-unstyled small">
+                <li class="mb-1"><strong>Room #:</strong> {{ room.room_number }}</li>
+                <li class="mb-1"><strong>Type:</strong> {{ room.room_type|title }}</li>
+                <li class="mb-1"><strong>Price:</strong> ₹{{ room.price }}</li>
+                <li class="mb-1">
+                  <strong>Available:</strong>
+                  {% if room.is_available %}
+                    <span class="badge bg-primary">Yes</span>
+                  {% else %}
+                    <span class="badge bg-danger">No</span>
+                  {% endif %}
+                </li>
+              </ul>
+            </div>
+
+            <div class="card-footer d-flex justify-content-between align-items-center bg-white border-top-0">
+              {% if room.is_available %}
+               <a href="{% url 'book_hotel' room.pk %}" class="btn btn-success btn-sm">
+                <i class="bi bi-calendar-check"></i> Book Now
+              </a>
+              {% else %}
+                <button class="btn btn-secondary btn-sm" disabled>Booked</button>
+              {% endif %}
+
+              <!-- 👇 Show Edit/Delete only to staff -->
+              {% if request.user.is_authenticated and request.user.is_staff %}
+                <a style="margin-left: 15vh;" href="{% url 'room_update' room.pk %}" class="btn btn-warning btn-sm">
+                  <i class="bi bi-pencil-square"></i> Edit
+                </a>
+                <a href="{% url 'room_delete' room.pk %}" class="btn btn-danger btn-sm">
+                  <i class="bi bi-trash"></i> Delete
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted">No rooms available yet.</p>
+  {% endif %}
+
+  <!-- 🔶 REVIEWS SECTION -->
+  <h4 class="mb-3">Guest Reviews</h4>
+  {% if reviews %}
+    <div class="row g-3">
+      {% for review in reviews %}
+        <div class="col-md-4">
+          <div class="card shadow-sm border-0 rounded-4 h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between mb-2">
+                <strong>{{ review.user.username }}</strong>
+                <span class="text-warning fw-bold">★ {{ review.star_rating }}</span>
+              </div>
+              <p class="card-text small">{{ review.comment }}</p>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted">No reviews yet.</p>
+  {% endif %}
+
+</div>
+{% endblock %}

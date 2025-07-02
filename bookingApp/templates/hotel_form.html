@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-md-7">
+      <div class="card shadow-lg rounded-4 border-0" style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white;">
+        <div class="card-header text-center py-4" style="background: rgba(0,0,0,0.25); border-bottom: 1px solid rgba(255,255,255,0.2);">
+          <h2 class="fw-bold">
+            {% if form.instance.pk %}Edit Hotel{% else %}Add New Hotel{% endif %}
+          </h2>
+          <p class="mb-0 fst-italic">Fill out the details below to {% if form.instance.pk %}update{% else %}add{% endif %} the hotel</p>
+        </div>
+
+        <div class="card-body p-5" style="background: white; color: #333;">
+          <form method="POST" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+
+            {% for field in form %}
+              <div class="mb-4">
+                <label for="{{ field.id_for_label }}" class="form-label fw-semibold text-primary">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                  <div class="form-text text-muted">{{ field.help_text }}</div>
+                {% endif %}
+                {% if field.errors %}
+                  <div class="text-danger mt-1 small">{{ field.errors }}</div>
+                {% endif %}
+              </div>
+            {% endfor %}
+
+            Existing Images with Delete Option
+            {% if form.instance.pk and form.instance.images.all %}
+              <div class="mb-4">
+                <label class="form-label fw-semibold text-primary">Current Images</label>
+                <div class="row">
+                  {% for img in form.instance.images.all %}
+                    <div class="col-4 text-center mb-3">
+                      <img src="{{ img.image.url }}" class="img-fluid rounded" alt="Hotel Image" style="max-height: 150px; object-fit: cover;">
+                      <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="delete_images" value="{{ img.id }}" id="deleteImage{{ forloop.counter }}">
+                        <label class="form-check-label small text-danger" for="deleteImage{{ forloop.counter }}">
+                          Delete
+                        </label>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+
+            <!-- Upload New Images -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold text-primary">Upload New Hotel Images</label>
+              <input type="file" name="images" multiple class="form-control" />
+              <small class="form-text text-muted">You can select and upload multiple new images.</small>
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <button type="submit" class="btn btn-gradient btn-lg px-4 fw-semibold" style="background: #2575fc; border: none; color: white; box-shadow: 0 4px 15px rgba(37, 117, 252, 0.5); transition: all 0.3s ease;">
+                Save Hotel
+              </button>
+              <a href="{% url 'hotel_list' %}" class="btn btn-outline-secondary btn-lg px-4 fw-semibold" style="color: #2575fc; border-color: #2575fc;">
+                Cancel
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
